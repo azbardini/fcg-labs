@@ -147,7 +147,7 @@ int main()
     while (!glfwWindowShouldClose(window))
     {
         hora = (int)(glfwGetTime()*4) % 16;
-        printf("%d ", hora);
+        // printf("%d ", hora);
         if(hora == 0){
           a[3] = 0;
           a[2] = 0;
@@ -159,7 +159,7 @@ int main()
           a[i] = n % 2;
           n = n / 2;
         }
-        printf("%d%d%d%d\n", a[3],a[2],a[1],a[0]);
+        // printf("%d%d%d%d\n", a[3],a[2],a[1],a[0]);
 
         // Aqui executamos as operações de renderização
         // Construímos a representação de um triângulo
@@ -189,14 +189,14 @@ int main()
           if(a[digito]){
             glBindVertexArray(vertex_array_object_1);
             glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_BYTE, 0);
+            glBindVertexArray(0);
           }
           else{
             glBindVertexArray(vertex_array_object_0);
             glDrawElements(GL_TRIANGLE_STRIP, ((VERTICES_EXTERNOS * 2) + 2), GL_UNSIGNED_BYTE, 0);
+            glBindVertexArray(0);
           }
         }
-
-        glBindVertexArray(0);
 
         // O framebuffer onde OpenGL executa as operações de renderização não
         // é o mesmo que está sendo mostrado para o usuário, caso contrário
