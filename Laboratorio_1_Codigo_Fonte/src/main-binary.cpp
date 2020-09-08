@@ -33,7 +33,8 @@
 
 // Declaração de várias funções utilizadas em main().  Essas estão definidas
 // logo após a definição de main() neste arquivo.
-GLuint BuildTriangles(); // Constrói triângulos para renderização
+GLuint Build0(int posicao); // Constrói triângulos para renderização
+GLuint Build1(int posicao); // Constrói triângulos para renderização
 GLuint LoadShader_Vertex(const char* filename);   // Carrega um vertex shader
 GLuint LoadShader_Fragment(const char* filename); // Carrega um fragment shader
 void LoadShader(const char* filename, GLuint shader_id); // Função utilizada pelas duas acima
@@ -44,6 +45,10 @@ GLuint CreateGpuProgram(GLuint vertex_shader_id, GLuint fragment_shader_id); // 
 void FramebufferSizeCallback(GLFWwindow* window, int width, int height);
 void ErrorCallback(int error, const char* description);
 void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
+
+const int VERTICES_EXTERNOS = 64;
+const float RAIO_DE_FORA = 0.3f;
+const float RAIO_DE_DENTRO = 0.2f;
 
 int main()
 {
@@ -135,13 +140,29 @@ int main()
     // Criamos um programa de GPU utilizando os shaders carregados acima
     GLuint program_id = CreateGpuProgram(vertex_shader_id, fragment_shader_id);
 
-    // Construímos a representação de um triângulo
-    GLuint vertex_array_object_id = BuildTriangles();
 
+    int hora;
+    int a[10],n,i;
     // Ficamos em um loop infinito, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
     {
+        hora = (int)(glfwGetTime()*4) % 16;
+        // printf("%d ", hora);
+        if(hora == 0){
+          a[3] = 0;
+          a[2] = 0;
+          a[1] = 0;
+          a[0] = 0;
+        }
+        n = hora;
+        for(i = 0; n > 0; i++) {
+          a[i] = n % 2;
+          n = n / 2;
+        }
+        // printf("%d%d%d%d\n", a[3],a[2],a[1],a[0]);
+
         // Aqui executamos as operações de renderização
+        // Construímos a representação de um triângulo
 
         // Definimos a cor do "fundo" do framebuffer como branco.  Tal cor é
         // definida como coeficientes RGBA: Red, Green, Blue, Alpha; isto é:
@@ -159,24 +180,23 @@ int main()
         glUseProgram(program_id);
 
         // "Ligamos" o VAO. Informamos que queremos utilizar os atributos de
-        // vértices apontados pelo VAO criado pela função BuildTriangles(). Veja
-        // comentários detalhados dentro da definição de BuildTriangles().
-        glBindVertexArray(vertex_array_object_id);
+        // vértices apontados pelo VAO criado pela função Build1(). Veja
+        // comentários detalhados dentro da definição de Build1().
 
-        // Pedimos para a GPU rasterizar os vértices apontados pelo VAO como
-        // triângulos.
-        //
-        //                +--- Veja slides 124-130 do documento Aula_04_Modelagem_Geometrica_3D.pdf.
-        //                |          +--- O array "indices[]" contém 6 índices (veja função BuildTriangles()).
-        //                |          |  +--- Os índices são do tipo "GLubyte" (8 bits sem sinal)
-        //                |          |  |                 +--- Vértices começam em indices[0] (veja função BuildTriangles()).
-        //                |          |  |                 |
-        //                V          V  V                 V
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
-
-        // "Desligamos" o VAO, evitando assim que operações posteriores venham a
-        // alterar o mesmo. Isso evita bugs.
-        glBindVertexArray(0);
+        for(int digito = 0; digito < 4; digito ++){
+          GLuint vertex_array_object_0 = Build0(digito);
+          GLuint vertex_array_object_1 = Build1(digito);
+          if(a[digito]){
+            glBindVertexArray(vertex_array_object_1);
+            glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_BYTE, 0);
+            glBindVertexArray(0);
+          }
+          else{
+            glBindVertexArray(vertex_array_object_0);
+            glDrawElements(GL_TRIANGLE_STRIP, ((VERTICES_EXTERNOS * 2) + 2), GL_UNSIGNED_BYTE, 0);
+            glBindVertexArray(0);
+          }
+        }
 
         // O framebuffer onde OpenGL executa as operações de renderização não
         // é o mesmo que está sendo mostrado para o usuário, caso contrário
@@ -200,28 +220,32 @@ int main()
 }
 
 // Constrói triângulos para futura renderização
-GLuint BuildTriangles()
+GLuint Build1(int posicao)
 {
-    // Primeiro, definimos os atributos de cada vértice.
-
-    // A posição de cada vértice é definida por coeficientes em "normalized
-    // device coordinates" (NDC), onde cada coeficiente está entre -1 e 1.
-    // (Veja slides 129-132 e 138-145 do documento Aula_03_Rendering_Pipeline_Grafico.pdf).
-    // Nas aulas sobre transformações geométrica veremos como transformar
-    // coeficientes em outros sistemas de coordenadas para coeficientes NDC.
-    //
-    // Note que aqui adicionamos um quarto coeficiente W (igual a 1.0).
-    // Conversaremos sobre isso quando tratarmos de coordenadas homogêneas.
-    //
-    // Este vetor "NDC_coefficients" define a GEOMETRIA (veja slides 64-71 do documento Aula_04_Modelagem_Geometrica_3D.pdf).
-    //
+    float tamanho = 0.3;
+    float deslocamento[4] = {0.75f, 0.25f, -0.25f, -0.75f };
     GLfloat NDC_coefficients[] = {
-    //    X      Y     Z     W
-        -0.5f, -0.5f, 0.0f, 1.0f,
-         0.5f, -0.5f, 0.0f, 1.0f,
-         0.0f,  0.5f, 0.0f, 1.0f,
-         0.5f,  0.5f, 0.0f, 1.0f
+          -0.4f,    0.5f,       0.0f, 1.0f,
+           0.0f,    1.0f,       0.0f, 1.0f,
+           0.0f,    0.6f,       0.0f, 1.0f,
+           0.3f,    1.0f,       0.0f, 1.0f,
+           0.0f,   -1.0f,       0.0f, 1.0f,
+           0.3f,   -1.0f,       0.0f, 1.0f,
     };
+
+    //Seta tamanho
+    for(int i = 0; i < (6*4); i += 4){
+      NDC_coefficients[i+0] = NDC_coefficients[i+0] * tamanho;
+      NDC_coefficients[i+1] = NDC_coefficients[i+1] * tamanho;
+      // printf("%f | %f | %f | %f \n", NDC_coefficients[i+0], NDC_coefficients[i+1], NDC_coefficients[i+2], NDC_coefficients[i+4]);
+    }
+
+    //Seta deslocamento
+    for(int i = 0; i < (6*4); i += 4){
+      NDC_coefficients[i] = NDC_coefficients[i] + deslocamento[posicao];
+      // printf("%f | %f | %f | %f \n", NDC_coefficients[i+0], NDC_coefficients[i+1], NDC_coefficients[i+2], NDC_coefficients[i+4]);
+    }
+
 
     // Criamos o identificador (ID) de um Vertex Buffer Object (VBO).  Um VBO é
     // um buffer de memória que irá conter os valores de um certo atributo de
@@ -235,12 +259,12 @@ GLuint BuildTriangles()
     // Criamos o identificador (ID) de um Vertex Array Object (VAO).  Um VAO
     // contém a definição de vários atributos de um certo conjunto de vértices;
     // isto é, um VAO irá conter ponteiros para vários VBOs.
-    GLuint vertex_array_object_id;
-    glGenVertexArrays(1, &vertex_array_object_id);
+    GLuint vertex_array_object_1;
+    glGenVertexArrays(1, &vertex_array_object_1);
 
     // "Ligamos" o VAO ("bind"). Informamos que iremos atualizar o VAO cujo ID
-    // está contido na variável "vertex_array_object_id".
-    glBindVertexArray(vertex_array_object_id);
+    // está contido na variável "vertex_array_object_1".
+    glBindVertexArray(vertex_array_object_1);
 
     // "Ligamos" o VBO ("bind"). Informamos que o VBO cujo ID está contido na
     // variável VBO_NDC_coefficients_id será modificado a seguir. A
@@ -299,10 +323,12 @@ GLuint BuildTriangles()
     // Conversaremos sobre sistemas de cores nas aulas de Modelos de Iluminação.
     GLfloat color_coefficients[] = {
     //  R     G     B     A
-        1.0f, 0.0f, 0.0f, 1.0f,
-        0.0f, 1.0f, 0.0f, 1.0f,
         0.0f, 0.0f, 1.0f, 1.0f,
-        0.0f, 1.0f, 1.0f, 1.0f
+        0.0f, 0.0f, 1.0f, 1.0f,
+        0.0f, 0.0f, 1.0f, 1.0f,
+        0.0f, 0.0f, 1.0f, 1.0f,
+        0.0f, 0.0f, 1.0f, 1.0f,
+        0.0f, 0.0f, 1.0f, 1.0f,
     };
     GLuint VBO_color_coefficients_id;
     glGenBuffers(1, &VBO_color_coefficients_id);
@@ -315,14 +341,19 @@ GLuint BuildTriangles()
     glEnableVertexAttribArray(location);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    // Vamos então definir dois triângulos utilizando os vértices do array
-    // NDC_coefficients. O primeiro triângulo é formado pelos vértices 0,1,2;
-    // e o segundo pelos vértices 2,1,3. Note que usaremos o modo de renderização
-    // GL_TRIANGLES na chamada glDrawElements() dentro de main(). Veja slides 124-130 do documento Aula_04_Modelagem_Geometrica_3D.pdf.
-    //
-    // Este vetor "indices" define a TOPOLOGIA (veja slides 64-71 do documento Aula_04_Modelagem_Geometrica_3D.pdf).
-    //
-    GLubyte indices[] = { 0,1,2, 2,1,3 }; // GLubyte: valores entre 0 e 255 (8 bits sem sinal).
+    // -0.5f,  0.3f,       0.0f, 1.0f,
+    //  0.0f,  1.0f,       0.0f, 1.0f,
+    //  0.0f,  0.5f,       0.0f, 1.0f,
+    //  0.5f,  1.0f,       0.0f, 1.0f,
+    //  0.0f, -1.0f,       0.0f, 1.0f,
+    //  0.5f, -1.0f,       0.0f, 1.0f,
+
+    GLubyte indices[] = {
+      0,1,2,
+      2,1,3,
+      2,3,4,
+      3,4,5
+     }; // GLubyte: valores entre 0 e 255 (8 bits sem sinal).
 
     // Criamos um buffer OpenGL para armazenar os índices acima
     GLuint indices_id;
@@ -350,7 +381,160 @@ GLuint BuildTriangles()
 
     // Retornamos o ID do VAO. Isso é tudo que será necessário para renderizar
     // os triângulos definidos acima. Veja a chamada glDrawElements() em main().
-    return vertex_array_object_id;
+    return vertex_array_object_1;
+}
+
+GLuint Build0(int posicao)
+{
+
+    float deslocamento[4] = {0.75f, 0.25f, -0.25f, -0.75f };
+
+    int qtd_vertices_a_desenhar = 8 * VERTICES_EXTERNOS;// * VERTICES_EXTERNOS;
+    GLfloat NDC_coefficients[qtd_vertices_a_desenhar];
+    int i = 0;
+    float angulo = 0;
+    float Rad2Pi = M_PI * 2;
+    for(i = 0; i < qtd_vertices_a_desenhar; i += 8){
+        NDC_coefficients[i + 0] = RAIO_DE_DENTRO * cos(angulo) / 2 + deslocamento[posicao]; //X
+        NDC_coefficients[i + 1] = RAIO_DE_DENTRO * sin(angulo) / 0.8; //Y
+        NDC_coefficients[i + 4] = RAIO_DE_FORA * cos(angulo) / 1.5 + deslocamento[posicao]; //X
+        NDC_coefficients[i + 5] = RAIO_DE_FORA * sin(angulo); //Y
+        NDC_coefficients[i + 2] = 1.0f;//Ignora
+        NDC_coefficients[i + 3] = 1.0f;//Ignora
+        NDC_coefficients[i + 6] = 1.0f;//Ignora
+        NDC_coefficients[i + 7] = 1.0f;//Ignora
+        angulo +=  Rad2Pi / VERTICES_EXTERNOS;
+    }
+
+    // Criamos o identificador (ID) de um Vertex Buffer Object (VBO).  Um VBO é
+    // um buffer de memória que irá conter os valores de um certo atributo de
+    // um conjunto de vértices; por exemplo: posição, cor, normais, coordenadas
+    // de textura. Neste exemplo utilizaremos vários VBOs, um para cada tipo de
+    // atributo.  Agora criamos um VBO para armazenarmos um atributo: posição
+    // (coeficientes NDC definidos acima).
+    GLuint VBO_NDC_coefficients_id;
+    glGenBuffers(1, &VBO_NDC_coefficients_id);
+
+    // Criamos o identificador (ID) de um Vertex Array Object (VAO).  Um VAO
+    // contém a definição de vários atributos de um certo conjunto de vértices;
+    // isto é, um VAO irá conter ponteiros para vários VBOs.
+    GLuint vertex_array_object_0;
+    glGenVertexArrays(1, &vertex_array_object_0);
+
+    // "Ligamos" o VAO ("bind"). Informamos que iremos atualizar o VAO cujo ID
+    // está contido na variável "vertex_array_object_0".
+    glBindVertexArray(vertex_array_object_0);
+
+    // "Ligamos" o VBO ("bind"). Informamos que o VBO cujo ID está contido na
+    // variável VBO_NDC_coefficients_id será modificado a seguir. A
+    // constante "GL_ARRAY_BUFFER" informa que esse buffer é de fato um VBO, e
+    // irá conter atributos de vértices.
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_NDC_coefficients_id);
+
+    // Alocamos memória para o VBO "ligado" acima. Como queremos armazenar
+    // nesse VBO todos os valores contidos no array "NDC_coefficients", pedimos
+    // para alocar um número de bytes exatamente igual ao tamanho ("size")
+    // desse array. A constante "GL_STATIC_DRAW" dá uma dica para o driver da
+    // GPU sobre como utilizaremos os dados do VBO. Neste caso, estamos dizendo
+    // que não pretendemos alterar tais dados (são estáticos: "STATIC"), e
+    // também dizemos que tais dados serão utilizados para renderizar ou
+    // desenhar ("DRAW").  Pense que:
+    //
+    //            glBufferData()  ==  malloc() do C  ==  new do C++.
+    //
+    glBufferData(GL_ARRAY_BUFFER, sizeof(NDC_coefficients), NULL, GL_STATIC_DRAW);
+
+    // Finalmente, copiamos os valores do array NDC_coefficients para dentro do
+    // VBO "ligado" acima.  Pense que:
+    //
+    //            glBufferSubData()  ==  memcpy() do C.
+    //
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(NDC_coefficients), NDC_coefficients);
+
+    // Precisamos então informar um índice de "local" ("location"), o qual será
+    // utilizado no shader "shader_vertex.glsl" para acessar os valores
+    // armazenados no VBO "ligado" acima. Também, informamos a dimensão (número de
+    // coeficientes) destes atributos. Como em nosso caso são coordenadas NDC
+    // homogêneas, temos quatro coeficientes por vértice (X,Y,Z,W). Isto define
+    // um tipo de dado chamado de "vec4" em "shader_vertex.glsl": um vetor com
+    // quatro coeficientes. Finalmente, informamos que os dados estão em ponto
+    // flutuante com 32 bits (GL_FLOAT).
+    // Esta função também informa que o VBO "ligado" acima em glBindBuffer()
+    // está dentro do VAO "ligado" acima por glBindVertexArray().
+    // Veja https://www.khronos.org/opengl/wiki/Vertex_Specification#Vertex_Buffer_Object
+    GLuint location = 0; // "(location = 0)" em "shader_vertex.glsl"
+    GLint  number_of_dimensions = 4; // vec4 em "shader_vertex.glsl"
+    glVertexAttribPointer(location, number_of_dimensions, GL_FLOAT, GL_FALSE, 0, 0);
+
+    // "Ativamos" os atributos. Informamos que os atributos com índice de local
+    // definido acima, na variável "location", deve ser utilizado durante o
+    // rendering.
+    glEnableVertexAttribArray(location);
+
+    // "Desligamos" o VBO, evitando assim que operações posteriores venham a
+    // alterar o mesmo. Isto evita bugs.
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    int qtd_vertices_a_colorir = 8 * VERTICES_EXTERNOS;
+    GLfloat color_coefficients[qtd_vertices_a_colorir];
+    for(i = 0; i < qtd_vertices_a_colorir; i += 8){
+      //Dentro Vermelho
+      color_coefficients[i + 0] = 1.0f; //R
+      color_coefficients[i + 1] = 0.0f; //G
+      color_coefficients[i + 2] = 0.0f; //B
+      color_coefficients[i + 3] = 1.0f; //T
+      //Fora Azul
+      color_coefficients[i + 4] = 1.0f; //R
+      color_coefficients[i + 5] = 0.0f; //G
+      color_coefficients[i + 6] = 0.0f; //B
+      color_coefficients[i + 7] = 1.0f; //T
+    }
+
+    GLuint VBO_color_coefficients_id;
+    glGenBuffers(1, &VBO_color_coefficients_id);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_color_coefficients_id);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(color_coefficients), NULL, GL_STATIC_DRAW);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(color_coefficients), color_coefficients);
+    location = 1; // "(location = 1)" em "shader_vertex.glsl"
+    number_of_dimensions = 4; // vec4 em "shader_vertex.glsl"
+    glVertexAttribPointer(location, number_of_dimensions, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(location);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    GLubyte indices[2 * VERTICES_EXTERNOS + 2];
+    for(i = 0; i < VERTICES_EXTERNOS * 2; i++){
+       indices[i] = i;
+    }
+    indices[VERTICES_EXTERNOS * 2] = 0;
+    indices[VERTICES_EXTERNOS * 2 + 1] = indices[1];
+
+    // Criamos um buffer OpenGL para armazenar os índices acima
+    GLuint indices_id;
+    glGenBuffers(1, &indices_id);
+
+    // "Ligamos" o buffer. Note que o tipo agora é GL_ELEMENT_ARRAY_BUFFER.
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_id);
+
+    // Alocamos memória para o buffer.
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), NULL, GL_STATIC_DRAW);
+
+    // Copiamos os valores do array indices[] para dentro do buffer.
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(indices), indices);
+
+    // NÃO faça a chamada abaixo! Diferente de um VBO (GL_ARRAY_BUFFER), um
+    // array de índices (GL_ELEMENT_ARRAY_BUFFER) não pode ser "desligado",
+    // caso contrário o VAO irá perder a informação sobre os índices.
+    //
+    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); // XXX Errado!
+    //
+
+    // "Desligamos" o VAO, evitando assim que operações posteriores venham a
+    // alterar o mesmo. Isso evita bugs.
+    glBindVertexArray(0);
+
+    // Retornamos o ID do VAO. Isso é tudo que será necessário para renderizar
+    // os triângulos definidos acima. Veja a chamada glDrawElements() em main().
+    return vertex_array_object_0;
 }
 
 // Carrega um Vertex Shader de um arquivo. Veja definição de LoadShader() abaixo.
