@@ -39,6 +39,8 @@
 #include "utils.h"
 #include "matrices.h"
 
+const float CAMERA_SPEED = 0.02;
+
 // Declaração de várias funções utilizadas em main().  Essas estão definidas
 // logo após a definição de main() neste arquivo.
 GLuint BuildTriangles(); // Constrói triângulos para renderização
@@ -109,8 +111,12 @@ bool g_LeftMouseButtonPressed = false;
 // usuário através do mouse (veja função CursorPosCallback()). A posição
 // efetiva da câmera é calculada dentro da função main(), dentro do loop de
 // renderização.
-float g_CameraTheta = 0.0f; // Ângulo no plano ZX em relação ao eixo Z
-float g_CameraPhi = 0.0f;   // Ângulo em relação ao eixo Y
+
+float first_g_CameraTheta = -2.45f; // Ângulo no plano ZX em relação ao eixo Z
+float first_g_CameraPhi = 0.4f;   // Ângulo em relação ao eixo Y
+
+float g_CameraTheta = first_g_CameraTheta; // Ângulo no plano ZX em relação ao eixo Z
+float g_CameraPhi = first_g_CameraPhi;   // Ângulo em relação ao eixo Y
 float g_CameraDistance = 2.5f; // Distância da câmera para a origem
 
 // Variável que controla o tipo de projeção utilizada: perspectiva ou ortográfica.
@@ -118,6 +124,14 @@ bool g_UsePerspectiveProjection = true;
 
 // Variável que controla se o texto informativo será mostrado na tela.
 bool g_ShowInfoText = true;
+
+unsigned int isMovingForward = 0; 
+unsigned int isMovingBackward = 0; 
+unsigned int isMovingLeft = 0; 
+unsigned int isMovingRight = 0; 
+
+glm::vec4 firstCameraPos  = glm::vec4(3.0f, 2.0f, 3.5f, 1.0f);
+glm::vec4 cameraPos  = firstCameraPos;
 
 int main()
 {
@@ -148,7 +162,7 @@ int main()
     // Criamos uma janela do sistema operacional, com 800 colunas e 800 linhas
     // de pixels, e com título "INF01047 ...".
     GLFWwindow* window;
-    window = glfwCreateWindow(800, 800, "INF01047 - Seu Cartao - Seu Nome", NULL, NULL);
+    window = glfwCreateWindow(800, 800, "INF01047 - 00278083 - Augusto Zanella Bardini", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -239,9 +253,14 @@ int main()
     glm::mat4 the_model;
     glm::mat4 the_view;
 
+    float r, y, z, x;
+
     // Ficamos em loop, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
     {
+        // printf("\t%d\n", isMovingForward);
+        // printf("%d\t%d\t%d\n\n", isMovingLeft, isMovingBackward, isMovingRight);
+
         // Aqui executamos as operações de renderização
 
         // Definimos a cor do "fundo" do framebuffer como branco.  Tal cor é
@@ -269,21 +288,27 @@ int main()
         // variáveis g_CameraDistance, g_CameraPhi, e g_CameraTheta são
         // controladas pelo mouse do usuário. Veja as funções CursorPosCallback()
         // e ScrollCallback().
-        float r = g_CameraDistance;
-        float y = r*sin(g_CameraPhi);
-        float z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
-        float x = r*cos(g_CameraPhi)*sin(g_CameraTheta);
 
-        // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
-        // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-        glm::vec4 camera_position_c  = glm::vec4(x,y,z,1.0f); // Ponto "c", centro da câmera
-        glm::vec4 camera_lookat_l    = glm::vec4(0.0f,0.0f,0.0f,1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
-        glm::vec4 camera_view_vector = camera_lookat_l - camera_position_c; // Vetor "view", sentido para onde a câmera está virada
-        glm::vec4 camera_up_vector   = glm::vec4(0.0f,1.0f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
+        r = g_CameraDistance;
+        y = -r*sin(g_CameraPhi);
+        z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
+        x = r*cos(g_CameraPhi)*sin(g_CameraTheta);
+
+        glm::vec4 cameraTarget =    glm::vec4(x,y,z,0.0f);
+
+        glm::vec4 genericUp =       glm::vec4(0.0f, 1.0f ,0.0f ,0.0f);        
+        glm::vec4 cameraRight =     crossproduct(genericUp,cameraTarget);
+
+        glm::vec4 cameraUp =        crossproduct(cameraTarget,cameraRight);
+
+        if(isMovingForward)     cameraPos = cameraPos + (cameraTarget * CAMERA_SPEED);
+        if(isMovingBackward)    cameraPos = cameraPos - (cameraTarget * CAMERA_SPEED);
+        if(isMovingRight)       cameraPos = cameraPos - (cameraRight * CAMERA_SPEED);
+        if(isMovingLeft)        cameraPos = cameraPos + (cameraRight * CAMERA_SPEED);
 
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
         // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-        glm::mat4 view = Matrix_Camera_View(camera_position_c, camera_view_vector, camera_up_vector);
+        glm::mat4 view = Matrix_Camera_View(cameraPos, cameraTarget, cameraUp);
 
         // Agora computamos a matriz de Projeção.
         glm::mat4 projection;
@@ -1069,6 +1094,54 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
     {
         g_ShowInfoText = !g_ShowInfoText;
     }
+
+    //Forward
+    if (key == GLFW_KEY_W && action == GLFW_PRESS)
+    {
+        isMovingForward = 1;
+    }
+    if (key == GLFW_KEY_W && action == GLFW_RELEASE)
+    {
+        isMovingForward = 0;
+    }
+
+    //Backward
+    if (key == GLFW_KEY_S && action == GLFW_PRESS)
+    {
+        isMovingBackward = 1;
+    }
+    if (key == GLFW_KEY_S && action == GLFW_RELEASE)
+    {
+        isMovingBackward = 0;
+    }
+
+    //Left
+    if (key == GLFW_KEY_A && action == GLFW_PRESS)
+    {
+        isMovingLeft = 1;
+    }
+    if (key == GLFW_KEY_A && action == GLFW_RELEASE)
+    {
+        isMovingLeft = 0;
+    }
+
+    //Right
+    if (key == GLFW_KEY_D && action == GLFW_PRESS)
+    {
+        isMovingRight = 1;
+    }
+    if (key == GLFW_KEY_D && action == GLFW_RELEASE)
+    {
+        isMovingRight = 0;
+    }
+
+    if (key == GLFW_KEY_R && action == GLFW_PRESS)
+    {
+        cameraPos = firstCameraPos;
+        g_CameraPhi = first_g_CameraPhi;
+        g_CameraTheta = first_g_CameraTheta;
+    }
+
 }
 
 // Definimos o callback para impressão de erros da GLFW no terminal
