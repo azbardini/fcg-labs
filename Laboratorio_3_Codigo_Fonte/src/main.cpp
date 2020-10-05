@@ -378,10 +378,11 @@ int main()
             //FAZ Cabeça
             PushMatrix(model); // Guardamos matriz model atual na pilha             
                 model = model * Matrix_Translate(0.0f, 0.05f, 0.0f); // Atualizamos matriz model (multiplicação à direita) com a translação do antebraço direito
-                model = model * Matrix_Scale(0.4f, -0.3f, 1.6f); // Atualizamos matriz model (multiplicação à direita) com um escalamento do antebraço direito
+                model = model * Matrix_Scale(0.4f, 0.3f, 1.6f); // Atualizamos matriz model (multiplicação à direita) com um escalamento do antebraço direito
                 model = model // Atualizamos matriz model (multiplicação à direita) com a rotação do braço direito
-                    * Matrix_Rotate_Z(-g_AngleZ)  // TERCEIRO rotação Z de Euler
-                    * Matrix_Rotate_Y(-g_AngleY)  // SEGUNDO rotação Y de Euler
+                    * Matrix_Rotate_Z(3.141592f)  // TERCEIRO rotação Z de Euler
+                    * Matrix_Rotate_Z(g_AngleZ)  // TERCEIRO rotação Z de Euler
+                    * Matrix_Rotate_Y(g_AngleY)  // SEGUNDO rotação Y de Euler
                     * Matrix_Rotate_X(g_AngleX); // PRIMEIRO rotação X de Euler
                 glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model)); // Enviamos matriz model atual para a GPU
                 DrawCube(render_as_black_uniform); // #### ANTEBRAÇO DIREITO // Desenhamos o antebraço direito
