@@ -43,7 +43,7 @@ void main()
     vec4 v = normalize(camera_position - p);
 
     // Vetor que define o sentido da fonte de luz em relação ao ponto atual.
-    vec4 l =  normalize(camera_position);
+    vec4 l = v;
 
     // Vetor que define o sentido da reflexão especular ideal.
     vec4 r = -l + 2*n*dot(n,l); 
